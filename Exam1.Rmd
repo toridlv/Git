@@ -1,0 +1,47 @@
+---
+title: "Exam 1 code"
+author: "Tori"
+date: "10/16/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 3a. Load in necessary packages and the BRFSS data from github from the website: https://github.com/kijohnson/ADA-Fall-2021/blob/master/BRFSS2017_10percent_v.csv. 
+```{r}
+#loading in packages
+library(tidyverse)
+library(haven)
+
+#loading in the data
+BRFSS17<-read_csv("https://raw.githubusercontent.com/kijohnson/ADA-Fall-2021/master/BRFSS2017_10percent_v.csv")
+
+```
+
+## 3b. Determine median heights for each sex (males and females).
+```{r}
+#the codebook has the sex variable coded as 1=male, 2=female, 9=refused. Sex is currently a numeric variable so we need to change it to be a factor variable with 2 levels- male and female. Recoding and labeling the sex variable:
+BRFSS17$SEX <- factor(BRFSS17$SEX,
+                      levels = c(1,2),
+                      labels = c("Male", "Female"))
+table(BRFSS17$SEX)
+
+#Getting the median heights for males and females (and storing them):
+median_ht <- c(median(BRFSS17$ht_meters[BRFSS17$SEX=="Male"], na.rm = TRUE),
+              median(BRFSS17$ht_meters[BRFSS17$SEX=="Female"], na.rm = TRUE))
+median_ht
+
+```
+
+## 3c. Make a plot to examine median differences in height by sex
+```{r}
+#I grouped the data by the variable sex and filtered out missing data. Then I used the summarise function to name the median values of the height variable and plotted those median heights by sex. Finally, I changed the color of the bars to a light blue. 
+BRFSS17 %>%
+  group_by(SEX) %>%
+  filter(!is.na(SEX))%>%
+  summarise(Height = median(ht_meters, na.rm = TRUE)) %>%
+  ggplot(aes(x = SEX, y = Height)) +
+  geom_bar(stat = "identity", fill = "light blue")
+```
