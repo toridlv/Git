@@ -45,3 +45,12 @@ BRFSS17 %>%
   ggplot(aes(x = SEX, y = Height)) +
   geom_bar(stat = "identity", fill = "light blue")
 ```
+
+## Determine the mean height in females and males
+```{r}
+#Getting the mean heights of males and females:
+mean_ht <- c(mean(BRFSS17$ht_meters[BRFSS17$SEX=="Male"], na.rm = TRUE),
+             mean(BRFSS17$ht_meters[BRFSS17$SEX=="Female"], na.rm = TRUE))
+mean_ht
+```
+
