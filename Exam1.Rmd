@@ -37,13 +37,19 @@ median_ht
 
 ## 3c. Make a plot to examine median differences in height by sex
 ```{r}
-#I grouped the data by the variable sex and filtered out missing data. Then I used the summarise function to name the median values of the height variable and plotted those median heights by sex. Finally, I changed the color of the bars to a light blue. 
+#For the bar graph I grouped the data by the variable sex and filtered out missing data. Then I used the summarise function to name the median values of the height variable and plotted those median heights by sex. Finally, I changed the color of the bars to a light blue. 
 BRFSS17 %>%
   group_by(SEX) %>%
   filter(!is.na(SEX))%>%
   summarise(Height = median(ht_meters, na.rm = TRUE)) %>%
   ggplot(aes(x = SEX, y = Height)) +
   geom_bar(stat = "identity", fill = "light blue")
+
+#Then I made the realization that I misunderstood the question and that a boxplot would be a more appropriate plot and created one here with the x-axis as the sex variable, the y-axis as the height in meters and I added fill colors by sex. 
+h <- ggplot(na.omit(BRFSS17), aes(x = SEX, y = ht_meters, fill = SEX)) +
+      geom_boxplot()
+h
+
 ```
 
 ## Determine the mean height in females and males
