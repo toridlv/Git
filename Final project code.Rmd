@@ -1,0 +1,146 @@
+---
+title: "ADA Final Project"
+author: "Tori"
+date: "11/17/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Reading in the data and necessary packages
+
+```{r}
+pacman::p_load(haven, tidyverse, ggplot2, dplyr, broom, odds.n.ends, blorr, nnet)
+
+brfss19 <- read_xpt("LLCP2019.xpt")
+brfss19
+```
+
+## Management
+
+```{r}
+#Getting rid of underscores in front of variable name
+names(brfss19) <- gsub("\\_", "", names(brfss19))
+
+#Recoding variables for age, sex, race, CHD status, BMI, exercise frequency, and general health. Also recoded and categorized formal exercise variable. 
+brfss19_new <- brfss19 %>%
+  mutate(age = as.numeric(AGE80),
+         sex = factor(SEXVAR, levels = c(1,2), labels = c("Male", "Female")),
+         race = case_when(IMPRACE %in% 1 ~ "White",
+                          IMPRACE %in% 2 ~ "Black",
+                          IMPRACE %in% 3 ~ "Asian",
+                          IMPRACE %in% 4 ~ "American Indian/Alaskan Native",
+                          IMPRACE %in% 5 ~ "Hispanic",
+                          IMPRACE %in% 6 ~ "Other"),
+         race = factor(race, levels = c("White", "Black", "Asian", "American Indian/Alaskan Native", "Hispanic", "Other")),
+         CHD = factor(MICHD, levels = c(1,2), labels = c("Yes", "No")),
+         BMI = as.numeric(BMI5),
+         ex_freq = as.numeric(EXEROFT1),
+         gen_health = case_when(GENHLTH %in% 1 ~ "Excellent",
+                                GENHLTH %in% 2 ~ "Very good",
+                                GENHLTH %in% 3 ~ "Good",
+                                GENHLTH %in% 4 ~ "Fair",
+                                GENHLTH %in% 5 ~ "Poor"),
+         gen_health = factor(gen_health, levels = c("Excellent", "Very good", "Good", "Fair", "Poor")),
+         ex_formal = case_when(EXRACT11 %in% c(7, 37) ~ "Yes",
+                               EXRACT11 %in% c(18, 71, 73, 76) ~ "No"),
+         ex_formal = factor(ex_formal, levels = c("Yes", "No")),
+         ever_smk = case_when(SMOKER3 %in% c(1, 3) ~ 1,
+                              SMOKER3 %in% c(2, 4) ~ 2),
+         ever_smk = factor(ever_smk, levels = c(1, 2), labels = c("Yes", "No"))
+  )
+
+```
+
+
+## Checking the recoded variables
+```{r}
+table(brfss19_new$ex_formal)
+table(brfss19_new$race)
+table(brfss19_new$gen_health)
+table(brfss19_new$ever_smk)
+table(brfss19_new$BMI)
+table(brfss19$BMI5)
+```
+
+## Selecting just the variables needed and putting them in a new dataset
+```{r}
+brfss19_small <- brfss19_new %>%
+  select(age, sex, race, gen_health, CHD, BMI, ex_formal, ex_freq, ever_smk) %>%
+  na.omit()
+
+brfss19_small
+summary(brfss19_small)
+```
+
+## Linear Regression analysis of BMI and exercise type
+```{r}
+model_BMI <- lm(BMI ~ ex_formal, data = brfss19_small)
+model_BMI
+
+
+```
+
+## Binary Logistic Regression analysis of CHD status and exercise type
+```{r}
+#Logistic model for CHD (before adjustment)
+model_CHD <- glm(CHD ~ ex_formal, family = binomial, data = brfss19_small)
+model_CHD
+
+
+#Note: tests for linearity and multicollinearity are unnecessary since the independent variable is not continuous and there is only one predictor.
+
+
+#Influence plot- testing for disproportionate influence
+plot(model_CHD, which=4, id.n=5, col="red")
+#Cook's D cutoff (4/n)
+cutoff <- 0.00015
+#identify observations with a Cook's Distance greater than cutoff
+obs_no <- as.data.frame(cooks.distance(model_CHD)) %>%
+  mutate(obs_no=row_number()) %>%
+  filter(`cooks.distance(model_CHD)` > cutoff)
+#Excluding values in Cook's D plot for comparison
+model_CHD.modex <- update(model_CHD,subset=c(-obs_no$obs_no))
+summary(model_CHD.modex)
+#Compare coefficients between models with and without influential observations
+compareCoefs(model_CHD, model_CHD.modex) 
+  #Removing influential data largely affects the coefficients
+
+
+#Model fits 
+#Various pseudo R squares, log likelihood, deviance, AIC, BIC
+blr_model_fit_stats(model_CHD)
+#Hosmer Lemeshow goodness of fit
+blr_test_hosmer_lemeshow(model_CHD)
+
+#Calculate and print the Odds Ratios and 95%CIs
+OR_CHD<-exp(cbind(OR = coef(model_CHD), confint(model_CHD)))
+OR_CHD
+ 
+```
+  ### Interpretation: Based on the model results, the odds of... 
+
+##Logistic Regression analysis of CHD status and exercise type when adjusting for age, sex, race, smoking status, exercise frequency 
+```{r}
+
+```
+
+## Multinomial Regression analysis of perceived general health and exercise type
+```{r}
+#Logistic model for perceived general health. Note: the reference group is those that report excellent general health.
+model_gh <- multinom(gen_health ~ ex_formal, data = brfss19_small)
+summary(model_gh)
+
+#Note: tests for linearity and multicollinearity are unnecessary since the independent variable is not continuous and there is only one predictor.
+
+#Influence plot- testing for disproportionate influence
+plot(model_gh, which=4, id.n=5, col="blue")
+
+#Calculate and print the Odds Ratios and 95%CIs
+OR_gh<-exp(cbind(OR = coef(model_gh), confint(model_gh)))
+OR_gh
+```
+
+```
