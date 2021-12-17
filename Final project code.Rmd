@@ -40,6 +40,7 @@ brfss19cut
 #                          IMPRACE %in% 5 ~ "Hispanic",
 #                          IMPRACE %in% 6 ~ "Other"),
 #         race = factor(race, levels = c("White", "Black", "Asian", "American Indian/Alaskan Native", "Hispanic", "Other")),
+#          CHD = factor(MICHD, levels = c(1,2), labels = c("Yes", "No")),
 #         BMI = as.numeric(BMI5),
 #         ex_freq = as.numeric(PAFREQ1),
 #         gen_health = case_when(GENHLTH %in% 1 ~ "Excellent",
