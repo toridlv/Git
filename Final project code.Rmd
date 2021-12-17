@@ -18,8 +18,8 @@ pacman::p_load(haven, dplyr, tidyverse, ggplot2, ggfortify, broom, odds.n.ends, 
 #brfss19 <- read_xpt("LLCP2019.xpt")
 #brfss19
 
-brfsscut <-read_csv("brfss19cut.csv")
-brfsscut
+brfss19cut <-read_csv("brfss19cut.csv")
+brfss19cut
 ```
 
 ## Management(from original full dataset found here: https://www.cdc.gov/brfss/annual_data/annual_2019.html)
