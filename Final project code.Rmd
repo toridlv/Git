@@ -12,14 +12,14 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Reading in the data and necessary packages
 
 ```{r}
-pacman::p_load(haven, dplyr, tidyverse, ggplot2, ggfortify, broom, odds.n.ends, blorr, nnet, car, table1, caret, ggcorrplot, gtsummary, expss)
+pacman::p_load(haven, dplyr, tidyverse, ggplot2, ggfortify, broom, odds.n.ends, blorr, nnet, car, table1, caret, ggcorrplot, gtsummary, expss, lmtest)
 
 #(This step from the orignal full brfss 2019 file)
-#brfss19 <- read_xpt("LLCP2019.xpt")
-#brfss19
+brfss19 <- read_xpt("LLCP2019.xpt")
+brfss19
 
-brfss19cut <-read_csv("brfss19cut.csv")
-brfss19cut
+#brfss19cut <-read_csv("brfss19cut.csv")
+#brfss19cut
 ```
 
 ## Management(from original full dataset found here: https://www.cdc.gov/brfss/annual_data/annual_2019.html)
@@ -27,50 +27,51 @@ brfss19cut
 ```{r}
 ###This was management from the original brfss 2019 dataset- I made it into a smaller csv file below so these steps are not needed
 #Getting rid of underscores in front of variable name
-#names(brfss19) <- gsub("\\_", "", names(brfss19))
+names(brfss19) <- gsub("\\_", "", names(brfss19))
 
 #Recoding variables for age, sex, race, CHD status, BMI, exercise frequency, and general health. Also recoded and categorized formal exercise variable. 
-#brfss19 <- brfss19 %>%
-  #mutate(age = as.numeric(AGE80),
-#         sex = factor(SEXVAR, levels = c(1,2), labels = c("Male", "Female")),
-#         race = case_when(IMPRACE %in% 1 ~ "White",
-#                          IMPRACE %in% 2 ~ "Black",
-#                          IMPRACE %in% 3 ~ "Asian",
-#                          IMPRACE %in% 4 ~ "American Indian/Alaskan Native",
-#                          IMPRACE %in% 5 ~ "Hispanic",
-#                          IMPRACE %in% 6 ~ "Other"),
-#         race = factor(race, levels = c("White", "Black", "Asian", "American Indian/Alaskan Native", "Hispanic", "Other")),
-#          CHD = factor(MICHD, levels = c(1,2), labels = c("Yes", "No")),
-#         BMI = as.numeric(BMI5),
-#         ex_freq = as.numeric(PAFREQ1),
-#         gen_health = case_when(GENHLTH %in% 1 ~ "Excellent",
-#                                GENHLTH %in% 2 ~ "Very good",
-#                                GENHLTH %in% 3 ~ "Good",
-#                                GENHLTH %in% 4 ~ "Fair",
-#                                GENHLTH %in% 5 ~ "Poor"),
-#         gen_health = factor(gen_health, levels = c("Excellent", "Very good", "Good", "Fair", "Poor")),
-#         ex_formal = case_when(EXRACT11 %in% c(7, 37) ~ "Yes",
-#                               EXRACT11 %in% c(18, 71, 73, 76) ~ "No"),
-#         ex_formal = factor(ex_formal, levels = c("No", "Yes")),
-#         ever_smk = case_when(SMOKER3 %in% c(1, 3) ~ 1,
-#                              SMOKER3 %in% c(2, 4) ~ 2),
-#         ever_smk = factor(ever_smk, levels = c(1, 2), labels = c("Yes", "No")),
-#        )
+brfss19 <- brfss19 %>%
+  mutate(age = as.numeric(AGE80),
+         sex = factor(SEXVAR, levels = c(1,2), labels = c("Male", "Female")),
+         race = case_when(IMPRACE %in% 1 ~ "White",
+                          IMPRACE %in% 2 ~ "Black",
+                          IMPRACE %in% 3 ~ "Asian",
+                          IMPRACE %in% 4 ~ "American Indian/Alaskan Native",
+                          IMPRACE %in% 5 ~ "Hispanic",
+                          IMPRACE %in% 6 ~ "Other"),
+         race = factor(race, levels = c("White", "Black", "Asian", "American Indian/Alaskan Native", "Hispanic", "Other")),
+         CHD = factor(MICHD, levels = c(1,2), labels = c("Yes", "No")),
+         BMI = as.numeric(BMI5),
+         ex_freq = as.numeric(PAFREQ1),
+        gen_health = case_when(GENHLTH %in% 1 ~ "Excellent",
+                                GENHLTH %in% 2 ~ "Very good",
+                                GENHLTH %in% 3 ~ "Good",
+                                GENHLTH %in% 4 ~ "Fair",
+                                GENHLTH %in% 5 ~ "Poor"),
+         gen_health = factor(gen_health, levels = c("Excellent", "Very good", "Good", "Fair", "Poor")),
+         ex_formal = case_when(EXRACT11 %in% c(7, 37) ~ "Yes",
+                               EXRACT11 %in% c(18, 71, 73, 76) ~ "No",
+                               TRUE ~ "Neither"),
+         ex_formal = factor(ex_formal, levels = c("Neither", "No", "Yes")),
+         ever_smk = case_when(SMOKER3 %in% c(1, 3) ~ 1,
+                              SMOKER3 %in% c(2, 4) ~ 2),
+         ever_smk = factor(ever_smk, levels = c(1, 2), labels = c("Yes", "No")),
+        )
 
 #Per the codebook, the exercie frequency variable has 3 implied decimal places. I want to insert those decimal places explicitly:
 #brfss19$ex_freq <- brfss19$ex_freq/1000
 
 #Selecting just the variables needed and putting them in a new dataset
-#brfss19cut <- brfss19 %>%
-#  filter(!STATE %in% c(66, 72)) %>%
-#  select(age, sex, race, CHD, ex_formal, ever_smk, ex_freq) %>%
-#  na.omit()
+brfss19cut <- brfss19 %>%
+  filter(!STATE %in% c(66, 72)) %>%
+  select(age, sex, race, CHD, ex_formal, ever_smk, ex_freq) %>%
+  na.omit()
 
 #Changing the reference level of CHD
-#brfss19cut$CHD <- relevel(brfss19cut$CHD, ref = "No")
-#brfss19cut$ever_smk <- relevel(brfss19cut$ever_smk, ref = "No")
-#brfss19cut
-#summary(brfss19cut)
+brfss19cut$CHD <- relevel(brfss19cut$CHD, ref = "No")
+brfss19cut$ever_smk <- relevel(brfss19cut$ever_smk, ref = "No")
+brfss19cut
+summary(brfss19cut)
 
 #Making a smaller dataset to work with
 #write.csv(brfss19cut,"brfss19cut.csv")
@@ -108,7 +109,7 @@ exp(coef(model_CHD_before))
 
 #Logistic model for CHD (after adjusting)
 model_CHD <- glm(CHD ~ ex_formal + age + sex + race + ex_freq + ever_smk, family = binomial, data = brfss19cut)
-model_CHD
+summary(model_CHD)
 
 #The odds are very different before vs. after adjusting for covariates
 
@@ -118,21 +119,45 @@ odds.n.ends(model_CHD)
 
 ## Testing for Effect modification
 ```{r}
+#By sex with interaction term
 model_em <- glm(CHD ~ ex_formal + age + sex + race + ex_freq + ever_smk + sex*ex_formal, family = binomial, data = brfss19cut)
 model_em
+lrtest(model_CHD, model_em)
 
 OR_em<-exp(cbind(OR = coef(model_em), confint(model_em)))
 summary(OR_em)
 odds.n.ends(model_em)
 
+#By smoking with interaction term
 model_em2 <- glm(CHD ~ ex_formal + age + sex + race + ex_freq + ever_smk*ex_formal, family = binomial, data = brfss19cut)
 model_em2
+lrtest(model_CHD, model_em2)
 
 OR_em2<-exp(cbind(OR = coef(model_em2), confint(model_em2)))
 summary(OR_em2)
 odds.n.ends(model_em2)
+#Interaction term for sex was significant, while the interaction for smoking was not.
 
-#Interaction terms were not significant- no effect modification by sex or smoking for exercise frequency and CHD. 
+
+#Stratification by sex 
+  #Female
+Em_sexf<-glm(CHD~ex_formal + age + race + ex_freq + ever_smk, brfss19cut[which(brfss19cut$sex=="Female"),], family = binomial)
+summary(Em_sexf)
+odds.n.ends(Em_sexf)
+  #Male
+Em_sexm<-glm(CHD~ex_formal + age + race + ex_freq + ever_smk, brfss19cut[which(brfss19cut$sex=="Male"),], family = binomial)
+summary(Em_sexm)
+odds.n.ends(Em_sexm)
+
+#Stratification by smoking
+  #Smoker
+Em_smoke<-glm(CHD~ex_formal + age + sex + race + ex_freq, brfss19cut[which(brfss19cut$ever_smk=="Yes"),], family = binomial)
+summary(Em_smoke)
+odds.n.ends(Em_smoke)
+  #Non-smoker
+Em_nosmoke<-glm(CHD~ex_formal + age + sex + race + ex_freq, brfss19cut[which(brfss19cut$ever_smk=="No"),], family = binomial)
+summary(Em_nosmoke)
+odds.n.ends(Em_nosmoke)
 ```
 
 ## Testing assumptions. 
